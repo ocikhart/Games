@@ -16,7 +16,7 @@ class TicTacToe():
         '''
         self.board = np.array(['__']*9).reshape(3,3)
         self.reward_type = reward_type
-        self.winning_seqeunce = None #Keep track of winning move made by agent
+        self.winning_sequence = None #Keep track of winning move made by agent
         self.first_move = None #Keep track of first move made by agent
         if player == 'X':
             self.me ='X'
@@ -180,7 +180,7 @@ class TicTacToe():
         best_action_value = -np.Inf
         
         for action in actions:
-            Q_s_a = Q[current_state][action]
+            Q_s_a = Q(current_state,action,self.id)
             if Q_s_a == best_action_value:
                 best_action.append(action)
             elif Q_s_a > best_action_value:
@@ -199,6 +199,58 @@ class TicTacToe():
             p[best_action_i]+= 1 - eps
             return self.s1_to_b2[np.random.choice(actions,p=p)]
     
+def Q_random(state, action, player):
+    return 0.
+
+def play_games(n, player_X, player_O):
+    """
+    Simulates N games
+    
+    Args:
+      n (int):                  Play N=n games
+      player_X (TicTacToe):     Player X
+      player_O (TicTacToe):     Player O
+      
+    Returns:
+      p (scalar):  prediction
+    """
+    for j in range(n):
+        game_over = False
+        TicTacToe.reset_board(player_X)
+        TicTacToe.reset_board(player_O)
+        i = 1
+        while True:
+            action_X = t_board_X.pick_best_action(Q_random, 'greedy')
+            print(f"Match #{j+1} Round #{i} PLAYER X: {action_X}")
+            res_X = t_board_X.my_move(action_X)
+            print(t_board_X.show_board())
+            if not t_board_X.win(t_board_X.me):
+                t_board_O.opponent_move(action_X)
+            else:
+                print(f"WINNING MOVE ---> Winning Sequence {t_board_X.winning_sequence}")
+                break
+            if not np.any(t_board_X.board == '__'):
+                print(f"DRAW")
+                break
+            action_O = t_board_O.pick_best_action(Q_random, 'greedy')
+            print(f"Match #{j+1} Round #{i} PLAYER O: {action_O}")
+            res_X = t_board_O.my_move(action_O)
+            print(t_board_O.show_board())
+            if not t_board_O.win(t_board_O.me):
+                t_board_X.opponent_move(action_O)
+            else:
+                print(f"WINNING MOVE ---> Winning Sequence {t_board_X.winning_sequence}")
+                break
+            if not np.any(t_board_O.board == '__'):
+                print(f"DRAW")
+                break
+            i += 1
+
 
 t_board_X = TicTacToe(player = 'X',reward_type ='goal_reward')
-t_board_X.show_board()                  
+t_board_O = TicTacToe(player = 'O',reward_type ='goal_reward')
+
+States_X = t_board_X.my_states
+States_O = t_board_O.my_states
+
+play_games(2, t_board_X, t_board_O)
