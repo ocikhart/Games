@@ -239,7 +239,7 @@ def play_games(n, player_X, player_O):
             if not t_board_O.win(t_board_O.me):
                 t_board_X.opponent_move(action_O)
             else:
-                print(f"WINNING MOVE ---> Winning Sequence {t_board_X.winning_sequence}")
+                print(f"WINNING MOVE ---> Winning Sequence {t_board_O.winning_sequence}")
                 break
             if not np.any(t_board_O.board == '__'):
                 print(f"DRAW")
