@@ -199,4 +199,6 @@ class TicTacToe():
             p[best_action_i]+= 1 - eps
             return self.s1_to_b2[np.random.choice(actions,p=p)]
     
-                  
+
+t_board_X = TicTacToe(player = 'X',reward_type ='goal_reward')
+t_board_X.show_board()                  
