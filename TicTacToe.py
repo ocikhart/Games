@@ -3,6 +3,8 @@ from itertools import product
 import pandas as pd
 import random
 
+#For BASE3 indexing
+BASE3 = [6561, 2187, 729, 243, 81, 27, 9, 3, 1]
 
 class TicTacToe():
     def __init__(self,player = 1,reward_type ='goal_reward'):
@@ -41,20 +43,40 @@ class TicTacToe():
         
         #Initialize all possible states of the game
         l_o_l = [list(range(3)) for _ in range(9)]
-        states = set(product(*l_o_l))
+        states = list(product(*l_o_l))
         
         #Player X states include states with odd number of blanks and both players have occupied equal number of slots
         #Player O players after Player X, so player O states include states with even number of blanks and where
         #player X has occupied one more slot than player O
-        playerX_states = {state for state in states if (state.count(0)%2 == 1 and state.count(1)==state.count(2))} #
-        playerO_states =  {state for state in states if (state.count(0)%2 == 0 and state.count(1)==(state.count(2)+1))}
+        playerX_states = [state for state in states if (state.count(0)%2 == 1 and state.count(1)==state.count(2))]
+        playerO_states = [state for state in states if (state.count(0)%2 == 0 and state.count(1)==(state.count(2)+1))]
         
         #States 
         #self.board_full_states = {state for state in states if state.count(0)==0}
         if player == 1:
-            self.my_states = playerX_states
-        else:
             self.my_states = playerO_states
+        else:
+            self.my_states = playerX_states
+        
+        #Next states
+        self.next_states = [[] for _ in range(19683)]
+        #tmp_states = self.my_states.copy()
+        for s1 in self.my_states:
+            j = np.dot(BASE3, list(s1))
+            actions = [i for i,x  in enumerate(s1) if x == 0]
+            nsj1 = [list(s1) for _ in range(len(actions))]
+            for i,action in enumerate(actions):
+                nsj1[i][action] = self.opponent
+            for s2 in nsj1:
+                actions = [i for i,x  in enumerate(s2) if x == 0]
+                nsj2 = [np.array(s2) for _ in range(len(actions))]
+                for i,action in enumerate(actions):
+                    nsj2[i][action] = self.me
+                self.next_states[j] += nsj2
+            self.next_states[j] = np.asarray(self.next_states[j])
+        
+        #Experiences
+        self.experiences = []
           
     
     def reset_board(self):
@@ -77,6 +99,10 @@ class TicTacToe():
     def possible_actions(state):
         "Return possible actions given a state"
         return [i for i,x  in enumerate(np.ravel(state)) if x ==0]
+    
+    def next_possible_states(self,state):
+        "Return array of possible next states for a given a state"
+        return self.next_states[np.dot(BASE3, np.ravel(state))]
         
     def is_game_over(self):
         "Function to check if game is over"
@@ -125,17 +151,11 @@ class TicTacToe():
         self.board[position] = self.me
         
         I_win = self.win(self.me)
-        opponent_win = self.win(self.opponent)
         
         if self.reward_type == 'goal_reward':
             if I_win:
                 self.game_over = True
                 return 1
-            
-            elif opponent_win:
-                self.game_over = True
-                return -1
-            
             else:
                 return 0
             
@@ -143,11 +163,6 @@ class TicTacToe():
             if I_win:
                 self.game_over = True
                 return 0
-            
-            elif opponent_win:
-                self.game_over = True
-                return -10
-            
             else:
                 return -1
     
@@ -158,6 +173,24 @@ class TicTacToe():
         assert np.any(self.board == 0) , "Board is complete"
         assert self.win(self.me) == False and self.win(self.opponent)== False , " Game has already been won"
         self.board[position] = self.opponent
+        
+        opponent_win = self.win(self.opponent)
+        
+        if self.reward_type == 'goal_reward':
+            if opponent_win:
+                self.game_over = True
+                return -1
+            
+            else:
+                return 0
+            
+        elif self.reward_type == 'action_penalty':
+            if opponent_win:
+                self.game_over = True
+                return -10
+            
+            else:
+                return -1
             
     
     def pick_best_action(self,action_type,eps=None):

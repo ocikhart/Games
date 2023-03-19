@@ -16,7 +16,7 @@ def compute_loss(experiences, gamma, q_network, target_q_network):
     Calculates the loss.
     
     Args:
-      experiences: (tuple) tuple of ["state", "action", "reward", "next_state", "done"] namedtuples
+      experiences: (tuple) tuple of ["state", "reward", "next_state", "done"] namedtuples
       gamma: (float) The discount factor.
       q_network: (tf.keras.Sequential) Keras model for predicting the q_values
       target_q_network: (tf.keras.Sequential) Keras model for predicting the targets
@@ -27,7 +27,7 @@ def compute_loss(experiences, gamma, q_network, target_q_network):
     """
 
     # Unpack the mini-batch of experience tuples
-    states, actions, rewards, next_states, done_vals = experiences
+    states, rewards, next_states, done_vals = experiences
     
     # Compute max Q^(s,a)
     max_qsa = tf.reduce_max(target_q_network(next_states), axis=-1)
@@ -37,8 +37,6 @@ def compute_loss(experiences, gamma, q_network, target_q_network):
     
     # Get the q_values
     q_values = q_network(states)
-    q_values = tf.gather_nd(q_values, tf.stack([tf.range(q_values.shape[0]),
-                                                tf.cast(actions, tf.int32)], axis=1))
         
     # Compute the loss
     loss = MSE(y_targets, q_values) 
@@ -51,7 +49,7 @@ def agent_learn(agent, experiences, gamma):
     Updates the weights of the Q networks.
     
     Args:
-      experiences: (tuple) tuple of ["state", "action", "reward", "next_state", "done"] namedtuples
+      experiences: (tuple) tuple of ["state", "action", "reward", "done"] namedtuples
       gamma: (float) The discount factor.
     
     """ 
@@ -76,12 +74,7 @@ def play_games(n, player_X, player_O):
     Args:
       n (int):                  Play N=n games
       player_X (TicTacToe):     Player X
-      Q_X (TicTacToe):          Function Q for Player X
       player_O (TicTacToe):     Player O
-      Q_O (TicTacToe):          Function Q for Player O
-      
-    Returns:
-      p (scalar):  prediction
     """
     for j in range(n):
         game_over = False
@@ -115,6 +108,58 @@ def play_games(n, player_X, player_O):
                 break
             i += 1
 
+def train_games(n, player_X, player_O):
+    """
+    Simulates N games and trains the player_X
+    
+    Args:
+      n (int):                  Play N=n games
+      player_X (TicTacToe):     Player X
+      player_O (TicTacToe):     Player O
+    """
+    for j in range(n):
+        player_X.reset_board()
+        player_O.reset_board()
+        i = 1
+        first_O = False
+        while True:
+            action_X = player_X.pick_best_action('greedy')
+            reward_X = player_X.my_move(action_X)
+            board_X = np.copy(player_X.board)
+            board_O = np.copy(player_O.board)
+            reward_O = player_O.opponent_move(action_X)
+            if player_X.win(player_X.me):
+                player_X.experiences.append([np.ravel(board_X), reward_X, 1])
+                player_O.experiences.append([np.ravel(board_O), reward_O, 1])
+                break
+            if not np.any(player_X.board == 0):
+                player_X.experiences.append([np.ravel(board_X), reward_X, 1])
+                player_O.experiences.append([np.ravel(board_O), reward_O, 1])
+                break
+            if first_O:
+                player_O.experiences.append([np.ravel(board_O), reward_O, 0])
+            
+            action_O = player_O.pick_best_action('greedy')
+            reward_O = player_O.my_move(action_O)
+            board_O = np.copy(player_O.board)
+            board_X = np.copy(player_X.board)
+            reward_X = player_X.opponent_move(action_O)
+            first_O = True
+            if player_O.win(player_O.me):
+                player_O.experiences.append([np.ravel(board_O), reward_O, 1])
+                player_X.experiences.append([np.ravel(board_X), reward_X, 1])
+                break
+            if not np.any(t_board_O.board == 0):
+                player_O.experiences.append([np.ravel(board_O), reward_O, 1])
+                player_X.experiences.append([np.ravel(board_X), reward_X, 1])
+                break
+            player_X.experiences.append([np.ravel(board_X), reward_X, 0])
+            i += 1
+        print(player_X.experiences)
+        print(player_X.board)
+
+
+
 
 INPUT = 9
 GAMMA = 0.995             # discount factor
@@ -127,7 +172,28 @@ E_MIN = 0.01  # Minimum ε value for the ε-greedy policy.
 
 tf.random.set_seed(SEED)
 
-t_board_X = ttn.TicTacNN(player = 1,reward_type ='goal_reward')
+t_board_X = ttr.TicTacToe(player = 1,reward_type ='goal_reward')
 t_board_O = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
 
 ### play_games(2, t_board_X, t_board_O)
+### actions =  t_board_X.possible_actions(t_board_X.board)
+### actions =  np.array([0, 2, 4, 8])
+### states = np.tile(np.ravel(t_board_X.board), (len(actions),1))
+### for i,action in enumerate(actions):
+###     states[i][action] = t_board_X.me
+### print(states)
+### Q_a_s = t_board_X.q_network(states)
+### print(Q_a_s)
+### Q_a_s = tf.gather_nd(Q_a_s, tf.stack([tf.range(Q_a_s.shape[0]), tf.cast(actions, tf.int32)], axis=1))
+### print(tf.stack([tf.range(Q_a_s.shape[0]), tf.cast(actions, tf.int32)], axis=1))
+### print(Q_a_s)
+### Q_a_s = t_board_X.target_q_network(states)
+### print(Q_a_s)
+### Q_a_s = tf.gather_nd(Q_a_s, tf.stack([tf.range(Q_a_s.shape[0]), tf.cast(actions, tf.int32)], axis=1))
+### print(tf.stack([tf.range(Q_a_s.shape[0]), tf.cast(actions, tf.int32)], axis=1))
+### print(Q_a_s)
+
+# train_games(1, t_board_X, t_board_O)
+
+print(t_board_X.next_states[1])
+print(t_board_O.next_states[0])
