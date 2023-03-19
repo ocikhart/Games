@@ -43,8 +43,6 @@ class TicTacToe():
         l_o_l = [list(range(3)) for _ in range(9)]
         states = set(product(*l_o_l))
         
-
-        
         #Player X states include states with odd number of blanks and both players have occupied equal number of slots
         #Player O players after Player X, so player O states include states with even number of blanks and where
         #player X has occupied one more slot than player O
