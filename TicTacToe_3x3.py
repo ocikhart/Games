@@ -159,8 +159,6 @@ def train_games(n, player_X, player_O):
         print(player_X.board)
 
 
-
-
 INPUT = 9
 GAMMA = 0.995             # discount factor
 ALPHA = 1e-3              # learning rate  
