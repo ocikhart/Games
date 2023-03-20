@@ -27,10 +27,10 @@ def compute_loss(experiences, gamma, q_network, target_q_network):
     """
 
     # Unpack the mini-batch of experience tuples
-    states, rewards, next_states, done_vals = experiences
+    states, rewards, done_vals = map(list, zip(*experiences))
     
     # Compute max Q^(s,a)
-    max_qsa = tf.reduce_max(target_q_network(next_states), axis=-1)
+    # max_qsa = tf.reduce_max(target_q_network(next_states), axis=-1)
     
     # Set y = R if episode terminates, otherwise set y = R + γ max Q^(s,a).
     y_targets = rewards + (1 - done_vals) * gamma * max_qsa
@@ -155,8 +155,7 @@ def train_games(n, player_X, player_O):
                 break
             player_X.experiences.append([np.ravel(board_X), reward_X, 0])
             i += 1
-        print(player_X.experiences)
-        print(player_X.board)
+
 
 
 INPUT = 9
@@ -191,7 +190,9 @@ t_board_O = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
 ### print(tf.stack([tf.range(Q_a_s.shape[0]), tf.cast(actions, tf.int32)], axis=1))
 ### print(Q_a_s)
 
-# train_games(1, t_board_X, t_board_O)
+train_games(1, t_board_X, t_board_O)
 
-print(t_board_X.next_states[1])
-print(t_board_O.next_states[0])
+a1, a2, a3 = map(list, zip(*t_board_X.experiences))
+print(a1)
+print(a2)
+print(a3)
