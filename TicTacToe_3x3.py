@@ -226,7 +226,7 @@ t_board_O2 = ttn.TicTacNN(player = 2,reward_type ='goal_reward')
 plt.style.use('deeplearning.mplstyle')
 fig, ax = plt.subplots(2)
 
-training_directory_path = "/Users/ondrejcikhart/Desktop/Projects/HockeyAnalytics/data/"
+training_directory_path = "/Users/ondrejcikhart/Desktop/Projects/Games/training/"
 X_NN_file = training_directory_path + "X_32"
 
 loss = [0 for _ in range(EPOCHS)]
