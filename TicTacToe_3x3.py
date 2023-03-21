@@ -227,6 +227,7 @@ plt.style.use('deeplearning.mplstyle')
 fig, ax = plt.subplots(2,3)
 
 #Training round A - NN by RND
+print("Training round A - NN by RND")
 loss = [0 for _ in range(EPOCHS)]
 wins_X = [0 for _ in range(EPOCHS)]
 draws = [0 for _ in range(EPOCHS)]
@@ -249,6 +250,7 @@ ax[0,0].plot(x, np.asarray(loss))
 ax[1,0].stackplot(x, results_y)
 
 #Training round B - NN by NN
+print("Training round B - NN by NN")
 loss = [0 for _ in range(EPOCHS)]
 wins_X = [0 for _ in range(EPOCHS)]
 draws = [0 for _ in range(EPOCHS)]
@@ -271,6 +273,7 @@ ax[0,1].plot(x, np.asarray(loss))
 ax[1,1].stackplot(x, results_y)
 
 #Training round C - NN by NN reversed
+print("Training round C - NN by NN reversed")
 loss = [0 for _ in range(EPOCHS)]
 wins_X = [0 for _ in range(EPOCHS)]
 draws = [0 for _ in range(EPOCHS)]
