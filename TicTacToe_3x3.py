@@ -220,14 +220,15 @@ tf.random.set_seed(SEED)
 
 t_board_X1 = ttn.TicTacNN(player = 1,reward_type ='goal_reward')
 t_board_O1 = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
-t_board_O2 = ttr.TicTacNN(player = 2,reward_type ='goal_reward')
+t_board_O2 = ttn.TicTacNN(player = 2,reward_type ='goal_reward')
 
 #Init display
 plt.style.use('deeplearning.mplstyle')
-fig, ax = plt.subplots(2,3)
+fig, ax = plt.subplots(2)
 
-#Training round A - NN by RND
-print("Training round A - NN by RND")
+training_directory_path = "/Users/ondrejcikhart/Desktop/Projects/HockeyAnalytics/data/"
+X_NN_file = training_directory_path + "X_32"
+
 loss = [0 for _ in range(EPOCHS)]
 wins_X = [0 for _ in range(EPOCHS)]
 draws = [0 for _ in range(EPOCHS)]
@@ -244,56 +245,12 @@ for i in range(EPOCHS):
     print(f"Epoch {i+1} Loss = {loss[i]}")
     print("===================================")
 
-#display results
-results_y = np.vstack([wins_X, draws, wins_O])
-ax[0,0].plot(x, np.asarray(loss))
-ax[1,0].stackplot(x, results_y)
-
-#Training round B - NN by NN
-print("Training round B - NN by NN")
-loss = [0 for _ in range(EPOCHS)]
-wins_X = [0 for _ in range(EPOCHS)]
-draws = [0 for _ in range(EPOCHS)]
-wins_O = [0 for _ in range(EPOCHS)]
-x = np.arange(EPOCHS)
-for i in range(EPOCHS):
-    wx, d, wo = train_games(GAME_BATCH, t_board_X1, t_board_O2)
-    wins_X[i] = wx
-    draws[i] = d
-    wins_O[i] = wo
-    print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
-    states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_O2)
-    loss[i] = float(player_learn(t_board_O2, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
-    print(f"Epoch {i+1} Loss = {loss[i]}")
-    print("===================================")
+#saving the X model
+t_board_X1.target_q_network.save_weights(X_NN_file)
 
 #display results
 results_y = np.vstack([wins_X, draws, wins_O])
-ax[0,1].plot(x, np.asarray(loss))
-ax[1,1].stackplot(x, results_y)
-
-#Training round C - NN by NN reversed
-print("Training round C - NN by NN reversed")
-loss = [0 for _ in range(EPOCHS)]
-wins_X = [0 for _ in range(EPOCHS)]
-draws = [0 for _ in range(EPOCHS)]
-wins_O = [0 for _ in range(EPOCHS)]
-x = np.arange(EPOCHS)
-for i in range(EPOCHS):
-    wx, d, wo = train_games(GAME_BATCH, t_board_X1, t_board_O2)
-    wins_X[i] = wx
-    draws[i] = d
-    wins_O[i] = wo
-    print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
-    states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_X1)
-    loss[i] = float(player_learn(t_board_X1, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
-    print(f"Epoch {i+1} Loss = {loss[i]}")
-    print("===================================")
-
-#display results
-results_y = np.vstack([wins_X, draws, wins_O])
-ax[0,2].plot(x, np.asarray(loss))
-ax[1,2].stackplot(x, results_y)
-
+ax[0].plot(x, np.asarray(loss))
+ax[1].stackplot(x, results_y)
 
 plt.show()
