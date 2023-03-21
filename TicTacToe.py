@@ -4,7 +4,7 @@ import pandas as pd
 import random
 
 #For BASE3 indexing
-BASE3 = [6561, 2187, 729, 243, 81, 27, 9, 3, 1]
+BASE3 = np.array([6561, 2187, 729, 243, 81, 27, 9, 3, 1])
 STATE_SHAPE = 9
 BOARD_SHAPE = (3,3)
 MAX_INDEX = 19683
