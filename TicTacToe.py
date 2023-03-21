@@ -5,6 +5,9 @@ import random
 
 #For BASE3 indexing
 BASE3 = [6561, 2187, 729, 243, 81, 27, 9, 3, 1]
+STATE_SHAPE = 9
+BOARD_SHAPE = (3,3)
+MAX_INDEX = 19683
 
 class TicTacToe():
     def __init__(self,player = 1,reward_type ='goal_reward'):
@@ -12,7 +15,7 @@ class TicTacToe():
         player: Role agent should play. If X, agent has the first turn else agent has second turn
         reward_type: 'goal_reward' or 'action_penalty'
         '''
-        self.board = np.array([0]*9).reshape(3,3)
+        self.board = np.array([0]*STATE_SHAPE).reshape(BOARD_SHAPE)
         self.reward_type = reward_type
         self.winning_sequence = None #Keep track of winning move made by agent
         self.first_move = None #Keep track of first move made by agent
@@ -42,14 +45,14 @@ class TicTacToe():
         self.starting_state = self.board
         
         #Initialize all possible states of the game
-        l_o_l = [list(range(3)) for _ in range(9)]
+        l_o_l = [list(range(3)) for _ in range(STATE_SHAPE)]
         states = list(product(*l_o_l))
         
         #Player X states include states with odd number of blanks and both players have occupied equal number of slots
         #Player O players after Player X, so player O states include states with even number of blanks and where
         #player X has occupied one more slot than player O
-        playerX_states = [state for state in states if (state.count(0)%2 == 1 and state.count(1)==state.count(2))]
-        playerO_states = [state for state in states if (state.count(0)%2 == 0 and state.count(1)==(state.count(2)+1))]
+        playerX_states = [np.array(state) for state in states if (state.count(0)%2 == 1 and state.count(1)==state.count(2))]
+        playerO_states = [np.array(state) for state in states if (state.count(0)%2 == 0 and state.count(1)==(state.count(2)+1))]
         
         #States 
         #self.board_full_states = {state for state in states if state.count(0)==0}
@@ -58,22 +61,36 @@ class TicTacToe():
         else:
             self.my_states = playerX_states
         
-        #Next states
-        self.next_states = [[] for _ in range(19683)]
+        #Generate next states (move N+1)
+        self.next_states = [[] for _ in range(MAX_INDEX)]
+        self.next_states_p = [[] for _ in range(MAX_INDEX)]
         #tmp_states = self.my_states.copy()
         for s1 in self.my_states:
-            j = np.dot(BASE3, list(s1))
-            actions = [i for i,x  in enumerate(s1) if x == 0]
-            nsj1 = [list(s1) for _ in range(len(actions))]
+            if self.is_win(s1.reshape(BOARD_SHAPE),self.me):
+                continue
+            j = self.state_index(s1)
+            actions = [i for i,x  in np.ndenumerate(s1) if x == 0]
+            nsj1 = [np.copy(s1) for _ in range(len(actions))]
             for i,action in enumerate(actions):
                 nsj1[i][action] = self.opponent
+            losing_state = False
             for s2 in nsj1:
+                if self.is_win(s2.reshape(BOARD_SHAPE),self.opponent):
+                    losing_state = True
+                    continue
                 actions = [i for i,x  in enumerate(s2) if x == 0]
-                nsj2 = [np.array(s2) for _ in range(len(actions))]
+                nsj2 = [np.copy(s2) for _ in range(len(actions))]
                 for i,action in enumerate(actions):
                     nsj2[i][action] = self.me
                 self.next_states[j] += nsj2
+            if losing_state:
+                #self.next_states_p[j] = [0.2/max(1,len(self.next_states[j])) for _ in range(len(self.next_states[j]))]
+                self.next_states_p[j] = [0.2/max(1,len(nsj1)) for _ in range(len(self.next_states[j]))]
+            else:
+                #self.next_states_p[j] = [1/max(1,len(self.next_states[j])) for _ in range(len(self.next_states[j]))]
+                self.next_states_p[j] = [1/max(1,len(nsj1)) for _ in range(len(self.next_states[j]))]
             self.next_states[j] = np.asarray(self.next_states[j])
+            self.next_states_p[j] = np.asarray(self.next_states_p[j])
         
         #Experiences
         self.experiences = []
@@ -81,7 +98,7 @@ class TicTacToe():
     
     def reset_board(self):
         "Function to reset game and reset board to starting state"
-        self.board = np.array([0]*9).reshape(3,3)
+        self.board = np.array([0]*STATE_SHAPE).reshape(BOARD_SHAPE)
         self.starting_state = self.board
         self.game_over = False
         self.winning_sequence = None
@@ -94,6 +111,11 @@ class TicTacToe():
     def board_to_state(self):
         "Convert a board to a state in tuple format"
         return tuple([self.b_to_s[x] for x in np.ravel(self.board)])
+    
+    @staticmethod
+    def state_index(state):
+        "Returns index of state"
+        return int(np.dot(BASE3, state))
     
     @staticmethod
     def possible_actions(state):
@@ -139,6 +161,15 @@ class TicTacToe():
             return False
         
         return True
+    
+    def is_win(self,state,player):
+        "Check if state of a player is a win"
+        row_win = np.all(state[0,:] == player) or np.all(state[1,:] == player) or np.all(state[2,:] == player)
+        col_win = np.all(state[:,0] == player) or np.all(state[:,1] == player) or np.all(state[:,2] == player)
+        diag_win = np.all(state.diagonal()==player) or np.all(np.fliplr(state).diagonal()==player)
+        if row_win or col_win or diag_win:
+            return True
+        return False
     
     
     def my_move(self,position):
