@@ -220,7 +220,6 @@ tf.random.set_seed(SEED)
 
 t_board_X1 = ttn.TicTacNN(player = 1,reward_type ='goal_reward')
 t_board_O1 = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
-t_board_X2 = ttn.TicTacNN(player = 1,reward_type ='goal_reward')
 t_board_O2 = ttr.TicTacNN(player = 2,reward_type ='goal_reward')
 
 #Init display
