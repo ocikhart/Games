@@ -9,7 +9,7 @@ from tensorflow.python.keras.optimizers import adam_v2 as Adam
 INPUT = 9           # size of state
 GAMMA = 0.995       # discount factor
 ALPHA = 1e-3        # learning rate  
-TAU = 1*1e-3       # Soft update parameter.
+TAU = 0.1*1e-3       # Soft update parameter.
 
 
 class TicTacNN(ttt.TicTacToe):
