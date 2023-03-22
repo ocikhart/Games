@@ -108,6 +108,8 @@ def play_games(n, player_X, player_O):
         while True:
             action_X = player_X.pick_best_action('greedy')
             reward_X = player_X.my_move(action_X)
+            print(player_X.show_board())
+            print("-----------------------------------")
             board_X = np.copy(player_X.board)
             board_O = np.copy(player_O.board)
             reward_O = player_O.opponent_move(action_X)
@@ -126,8 +128,10 @@ def play_games(n, player_X, player_O):
             if moved_O:
                 player_O.experiences.append([np.ravel(board_O), reward_O, 0])
             
-            action_O = player_O.pick_best_action('greedy')
+            action_O = player_O.pick_best_action('not_greedy', 0.2)
             reward_O = player_O.my_move(action_O)
+            print(player_O.show_board())
+            print("-----------------------------------")
             board_O = np.copy(player_O.board)
             board_X = np.copy(player_X.board)
             reward_X = player_X.opponent_move(action_O)
@@ -148,7 +152,7 @@ def play_games(n, player_X, player_O):
             i += 1
     return wins_X, draws, wins_O
 
-def train_games(n, player_X, player_O, randomize=0):
+def train_games(n, player_X, player_O, type_X='greedy', type_Y='greedy', randomize=0):
     """
     Simulates N games and for the player_X and player_O
     
@@ -172,7 +176,7 @@ def train_games(n, player_X, player_O, randomize=0):
             if i <= randomize:
                 action_X = player_X.pick_rnd_action()
             else:
-                action_X = player_X.pick_best_action('not_greedy', eps=0.3)
+                action_X = player_X.pick_best_action(type_X, eps=EPS)
             reward_X = player_X.my_move(action_X)
             board_X = np.copy(player_X.board)
             board_O = np.copy(player_O.board)
@@ -193,7 +197,7 @@ def train_games(n, player_X, player_O, randomize=0):
             if i <= randomize:
                 action_O = player_O.pick_rnd_action()
             else:
-                action_O = player_O.pick_best_action('greedy')
+                action_O = player_O.pick_best_action(type_Y, eps=EPS)
             reward_O = player_O.my_move(action_O)
             board_O = np.copy(player_O.board)
             board_X = np.copy(player_X.board)
@@ -213,56 +217,102 @@ def train_games(n, player_X, player_O, randomize=0):
             i += 1
     return wins_X, draws, wins_O
 
+def train_X():
+    loss = [0 for _ in range(EPOCHS)]
+    wins_X = [0 for _ in range(EPOCHS)]
+    draws = [0 for _ in range(EPOCHS)]
+    wins_O = [0 for _ in range(EPOCHS)]
+    x = np.arange(EPOCHS)
+    for i in range(EPOCHS):
+        wx, d, wo = train_games(GAME_BATCH, t_board_XNN, t_board_ORND, 'greedy', 'greedy', 0)
+        wins_X[i] = wx
+        draws[i] = d
+        wins_O[i] = wo
+        print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
+        states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_XNN)
+        loss[i] = float(player_learn(t_board_XNN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
+        print(f"Epoch {i+1} Loss = {loss[i]}")
+        print("===================================")
+    #saving the X model
+    t_board_XNN.target_q_network.save_weights(X_NN_file)
+    #display results
+    results_y = np.vstack([wins_X, draws, wins_O])
+    ax[0].plot(x, np.asarray(loss))
+    ax[1].stackplot(x, results_y)
+
+def train_O():
+    loss = [0 for _ in range(EPOCHS)]
+    wins_X = [0 for _ in range(EPOCHS)]
+    draws = [0 for _ in range(EPOCHS)]
+    wins_O = [0 for _ in range(EPOCHS)]
+    x = np.arange(EPOCHS)
+    for i in range(EPOCHS):
+        wx, d, wo = train_games(GAME_BATCH, t_board_XRND, t_board_ONN, 0)
+        wins_X[i] = wx
+        draws[i] = d
+        wins_O[i] = wo
+        print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
+        states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_ONN)
+        loss[i] = float(player_learn(t_board_ONN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
+        print(f"Epoch {i+1} Loss = {loss[i]}")
+        print("===================================")
+    #saving the O model
+    t_board_ONN.target_q_network.save_weights(O_NN_file)
+    #display results
+    results_y = np.vstack([wins_X, draws, wins_O])
+    ax[0].plot(x, np.asarray(loss))
+    ax[1].stackplot(x, results_y)
+
+def play_XO(n=4):
+    loss = [0 for _ in range(n)]
+    wins_X = [0 for _ in range(n)]
+    draws = [0 for _ in range(n)]
+    wins_O = [0 for _ in range(n)]
+    x = np.arange(n)
+    for i in range(n):
+        wx, d, wo = play_games(GAME_BATCH, t_board_XNN, t_board_ONN)
+        wins_X[i] = wx
+        draws[i] = d
+        wins_O[i] = wo
+        print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
+        print(f"Epoch {i+1} Loss = {loss[i]}")
+        print("===================================")
+    #display results
+    results_y = np.vstack([wins_X, draws, wins_O])
+    ax[0].plot(x, np.asarray(loss))
+    ax[1].stackplot(x, results_y)
+
+
 
 INPUT = 9
-GAME_BATCH = 64
-EPOCHS = 16
+GAME_BATCH = 16
+EPOCHS = 32
 GAMMA = 0.995             # discount factor
 SEED = 0  # Seed for the pseudo-random number generator.
+EPS = 0.3 # ε for the ε-greedy policy.
 E_DECAY = 0.995  # ε-decay rate for the ε-greedy policy.
 E_MIN = 0.01  # Minimum ε value for the ε-greedy policy.
 training_directory_path = "/Users/ondrejcikhart/Desktop/Projects/Games/training/"
-X_NN_file = training_directory_path + "X_64"
+X_NN_file = training_directory_path + "X_64_AP"
 O_NN_file = training_directory_path + "O_64"
 
 #tf.random.set_seed(SEED)
 
-t_board_X1 = ttn.TicTacNN(player = 1,reward_type ='goal_reward')
-t_board_X1.q_network.load_weights(X_NN_file)
-t_board_X1.target_q_network.load_weights(X_NN_file)
-t_board_O1 = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
-t_board_X2 = ttr.TicTacToe(player = 1,reward_type ='goal_reward')
-t_board_O2 = ttn.TicTacNN(player = 2,reward_type ='goal_reward')
-t_board_O2.q_network.load_weights(O_NN_file)
-t_board_O2.target_q_network.load_weights(O_NN_file)
+t_board_XNN = ttn.TicTacNN(player = 1,reward_type ='action_penalty')
+t_board_XNN.q_network.load_weights(X_NN_file)
+t_board_XNN.target_q_network.load_weights(X_NN_file)
+t_board_ORND = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
+t_board_XRND = ttr.TicTacToe(player = 1,reward_type ='goal_reward')
+t_board_ONN = ttn.TicTacNN(player = 2,reward_type ='goal_reward')
+#t_board_ONN.q_network.load_weights(O_NN_file)
+#t_board_ONN.target_q_network.load_weights(O_NN_file)
 
 #Init display
 plt.style.use('deeplearning.mplstyle')
 fig, ax = plt.subplots(2)
 
-loss = [0 for _ in range(EPOCHS)]
-wins_X = [0 for _ in range(EPOCHS)]
-draws = [0 for _ in range(EPOCHS)]
-wins_O = [0 for _ in range(EPOCHS)]
-x = np.arange(EPOCHS)
-for i in range(EPOCHS):
-    wx, d, wo = train_games(GAME_BATCH, t_board_X1, t_board_O2, 0)
-    wins_X[i] = wx
-    draws[i] = d
-    wins_O[i] = wo
-    print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
-    states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_X1)
-    loss[i] = float(player_learn(t_board_X1, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
-    print(f"Epoch {i+1} Loss = {loss[i]}")
-    print("===================================")
-
-#saving the X model
-t_board_X1.target_q_network.save_weights(X_NN_file)
-#t_board_O2.target_q_network.save_weights(O_NN_file)
-
-#display results
-results_y = np.vstack([wins_X, draws, wins_O])
-ax[0].plot(x, np.asarray(loss))
-ax[1].stackplot(x, results_y)
+train_X()
+#train_O()
+#play_XO(1)
 
 plt.show()
