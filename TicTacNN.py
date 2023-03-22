@@ -9,7 +9,7 @@ from tensorflow.python.keras.optimizers import adam_v2 as Adam
 INPUT = 9           # size of state
 GAMMA = 0.995       # discount factor
 ALPHA = 1e-3        # learning rate  
-TAU = 50*1e-3          # Soft update parameter.
+TAU = 1*1e-3       # Soft update parameter.
 
 
 class TicTacNN(ttt.TicTacToe):
@@ -23,8 +23,8 @@ class TicTacNN(ttt.TicTacToe):
         # Create the Q-Network
         self.q_network = Sequential(
             [
-                Dense(32, input_dim=INPUT, activation = 'relu'),
-                Dense(32, activation = 'relu'),
+                Dense(64, input_dim=INPUT, activation = 'relu'),
+                Dense(64, activation = 'relu'),
                 Dense(1, activation = 'linear')
             ]
         )
@@ -32,8 +32,8 @@ class TicTacNN(ttt.TicTacToe):
         # Create the target Q^-Network
         self.target_q_network = Sequential(
             [
-                Dense(32, input_dim=INPUT, activation = 'relu'),
-                Dense(32, activation = 'relu'),
+                Dense(64, input_dim=INPUT, activation = 'relu'),
+                Dense(64, activation = 'relu'),
                 Dense(1, activation = 'linear')
             ]
         )

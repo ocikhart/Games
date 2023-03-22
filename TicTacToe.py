@@ -255,6 +255,16 @@ class TicTacToe():
             best_action_i = actions.index(best_action)
             p[best_action_i]+= 1 - eps
             return self.s1_to_b2[np.random.choice(actions,p=p)]
+    
+    def pick_rnd_action(self):
+        '''Given a state return a random action
+        '''
+        #Get possible actions
+        actions =  self.possible_actions(self.board)
+        best_action = random.choice(actions)
+
+        return self.s1_to_b2[best_action]
+        
         
     def Q(self,states):
         return np.array([0.]*len(states))
