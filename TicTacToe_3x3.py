@@ -131,7 +131,7 @@ def play_games(n, player_X, player_O, silent = True):
             if moved_O:
                 player_O.experiences.append([np.ravel(board_O), reward_O, 0])
             
-            action_O = player_O.pick_best_action('not_greedy', 0.2)
+            action_O = player_O.pick_best_action('greedy')
             reward_O = player_O.my_move(action_O)
             if not silent:
                 print(player_O.show_board())
@@ -230,13 +230,13 @@ def train_X(opponent):
     wins_O = [0 for _ in range(EPOCHS)]
     x = np.arange(EPOCHS)
     for i in range(EPOCHS):
-        wx, d, wo = train_games(GAME_BATCH, t_board_XNN, opponent, 'not_greedy', 'not_greedy', 0)
+        wx, d, wo = train_games(GAME_BATCH, t_board_XNN, opponent, 'greedy', 'not_greedy', randomize=0)
         wins_X[i] = wx
         draws[i] = d
         wins_O[i] = wo
         print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
         states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_XNN)
-        loss[i] = float(player_learn(t_board_XNN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
+        loss[i] = float(player_learn(t_board_XNN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, GAMMA))
         print(f"Epoch {i+1} Loss = {loss[i]}")
         print("===================================")
     #saving the X model
@@ -253,13 +253,13 @@ def train_O(opponent):
     wins_O = [0 for _ in range(EPOCHS)]
     x = np.arange(EPOCHS)
     for i in range(EPOCHS):
-        wx, d, wo = train_games(GAME_BATCH, opponent, t_board_ONN, 'not_greedy', 'not_greedy', 0)
+        wx, d, wo = train_games(GAME_BATCH, opponent, t_board_ONN, 'not_greedy', 'greedy', 0)
         wins_X[i] = wx
         draws[i] = d
         wins_O[i] = wo
         print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
         states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_ONN)
-        loss[i] = float(player_learn(t_board_ONN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, ttn.GAMMA))
+        loss[i] = float(player_learn(t_board_ONN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, GAMMA))
         print(f"Epoch {i+1} Loss = {loss[i]}")
         print("===================================")
     #saving the O model
@@ -269,14 +269,14 @@ def train_O(opponent):
     ax[0].plot(x, np.asarray(loss))
     ax[1].stackplot(x, results_y)
 
-def play_XO(epochs, game_batch, silent=True):
+def play_XO(epochs, game_batch, player_X, player_O, silent=True):
     loss = [0 for _ in range(epochs)]
     wins_X = [0 for _ in range(epochs)]
     draws = [0 for _ in range(epochs)]
     wins_O = [0 for _ in range(epochs)]
     x = np.arange(epochs)
     for i in range(epochs):
-        wx, d, wo = play_games(game_batch, t_board_XRND, t_board_ORND, silent)
+        wx, d, wo = play_games(game_batch, player_X, player_O, silent)
         wins_X[i] = wx
         draws[i] = d
         wins_O[i] = wo
@@ -291,16 +291,17 @@ def play_XO(epochs, game_batch, silent=True):
 
 
 INPUT = 9
-GAME_BATCH = 64
-EPOCHS = 4
-GAMMA = 0.995             # discount factor
+GAME_BATCH = 16
+EPOCHS = 32
+#GAMMA = 0.995             # discount factor
+GAMMA = 1.000             # discount factor
 SEED = 0  # Seed for the pseudo-random number generator.
-EPS = 0.3 # ε for the ε-greedy policy.
+EPS = 0.1 # ε for the ε-greedy policy.
 E_DECAY = 0.995  # ε-decay rate for the ε-greedy policy.
 E_MIN = 0.01  # Minimum ε value for the ε-greedy policy.
 training_directory_path = "/Users/ondrejcikhart/Desktop/Projects/Games/training/"
 X_NN_file = training_directory_path + "MODEL64_AP"
-O_NN_file = training_directory_path + "MODEL64_AP"
+O_NN_file = training_directory_path + "MODEL64_OO"
 
 #tf.random.set_seed(SEED)
 
@@ -315,8 +316,10 @@ t_board_ORND = ttr.TicTacToe(player = 2,reward_type ='goal_reward')
 plt.style.use('deeplearning.mplstyle')
 fig, ax = plt.subplots(2)
 
-train_X(t_board_ORND)
-#train_O(t_board_XRND)
-#play_XO(1, 256, True)
+print(np.random.choice(5, 5))
+
+#train_X(t_board_ORND)
+train_O(t_board_XNN)
+#play_XO(8, 64, t_board_XNN, t_board_ONN, True)
 
 plt.show()
