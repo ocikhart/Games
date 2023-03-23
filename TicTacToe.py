@@ -8,6 +8,7 @@ BASE3 = np.array([6561, 2187, 729, 243, 81, 27, 9, 3, 1])
 STATE_SHAPE = 9
 BOARD_SHAPE = (3,3)
 MAX_INDEX = 19683
+_EPS = 0.4
 
 class TicTacToe():
     def __init__(self,player = 1,reward_type ='goal_reward'):
@@ -22,17 +23,17 @@ class TicTacToe():
         if player == 1:
             self.me = 1
             self.id = 1
-            self.opponent = 2
+            self.opponent = -1
         else:
-            self.me = 2
-            self.id = 2
+            self.me = -1
+            self.id = -1
             self.opponent = 1
      
         self.game_over = False #Flag indicating whether game is over
         # Mapping of action representation in board to action representation in tuple 
-        self.b_to_s = {'__':0,'X':1,'O':2} 
+        self.b_to_s = {'__':0,'X':1,'O':-1} 
         # Mapping of action representation in tuple to action representation in board
-        self.s_to_b = {0:'__',1:'X',2:'O'} 
+        self.s_to_b = {-1:'O', 0:'__',1:'X'} 
         
         #Create mapping from 2D position in board to 1D position in tuple
         positions = self.available_positions()
@@ -45,7 +46,7 @@ class TicTacToe():
         self.starting_state = self.board
         
         #Initialize all possible states of the game
-        l_o_l = [list(range(3)) for _ in range(STATE_SHAPE)]
+        l_o_l = [[-1, 0, 1] for _ in range(STATE_SHAPE)]
         states = list(product(*l_o_l))
         
         #Player X states include states with odd number of blanks and both players have occupied equal number of slots
@@ -57,18 +58,19 @@ class TicTacToe():
         #States 
         #self.board_full_states = {state for state in states if state.count(0)==0}
         if player == 1:
-            self.my_states = playerO_states
+            start_states = playerO_states
         else:
-            self.my_states = playerX_states
+            start_states = playerX_states
         
         #Generate next states (move N+1)
         self.next_states = [[] for _ in range(MAX_INDEX)]
         self.next_states_p = [[] for _ in range(MAX_INDEX)]
-        #tmp_states = self.my_states.copy()
-        for s1 in self.my_states:
+        for s1 in start_states:
             if self.is_win(s1.reshape(BOARD_SHAPE),self.me):
                 continue
             j = self.state_index(s1)
+            #print(s1)
+            #print(j)
             actions = [i for i,x  in np.ndenumerate(s1) if x == 0]
             nsj1 = [np.copy(s1) for _ in range(len(actions))]
             for i,action in enumerate(actions):
@@ -84,10 +86,8 @@ class TicTacToe():
                     nsj2[i][action] = self.me
                 self.next_states[j] += nsj2
             if losing_state:
-                #self.next_states_p[j] = [0.2/max(1,len(self.next_states[j])) for _ in range(len(self.next_states[j]))]
-                self.next_states_p[j] = [0.2/max(1,len(nsj1)) for _ in range(len(self.next_states[j]))]
+                self.next_states_p[j] = [_EPS/max(1,len(nsj1)) for _ in range(len(self.next_states[j]))]
             else:
-                #self.next_states_p[j] = [1/max(1,len(self.next_states[j])) for _ in range(len(self.next_states[j]))]
                 self.next_states_p[j] = [1/max(1,len(nsj1)) for _ in range(len(self.next_states[j]))]
             self.next_states[j] = np.asarray(self.next_states[j])
             self.next_states_p[j] = np.asarray(self.next_states_p[j])
@@ -115,17 +115,13 @@ class TicTacToe():
     @staticmethod
     def state_index(state):
         "Returns index of state"
-        return int(np.dot(BASE3, state))
+        return int(np.dot(BASE3, 1 + state))
     
     @staticmethod
     def possible_actions(state):
         "Return possible actions given a state"
         return [i for i,x  in enumerate(np.ravel(state)) if x ==0]
     
-    def next_possible_states(self,state):
-        "Return array of possible next states for a given a state"
-        return self.next_states[np.dot(BASE3, np.ravel(state))]
-        
     def is_game_over(self):
         "Function to check if game is over"
         if not np.any(self.board == 0) :
@@ -210,7 +206,7 @@ class TicTacToe():
         if self.reward_type == 'goal_reward':
             if opponent_win:
                 self.game_over = True
-                return -1
+                return -10
             
             else:
                 return 0
