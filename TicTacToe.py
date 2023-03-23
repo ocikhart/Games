@@ -8,7 +8,7 @@ BASE3 = np.array([6561, 2187, 729, 243, 81, 27, 9, 3, 1])
 STATE_SHAPE = 9
 BOARD_SHAPE = (3,3)
 MAX_INDEX = 19683
-_EPS = 0.4
+_EPS = 0.9
 
 class TicTacToe():
     def __init__(self,player = 1,reward_type ='goal_reward'):
@@ -183,13 +183,17 @@ class TicTacToe():
             if I_win:
                 self.game_over = True
                 return 1
+            elif self.is_game_over():
+                return -1
             else:
                 return 0
             
         elif self.reward_type == 'action_penalty':
             if I_win:
                 self.game_over = True
-                return 0
+                return 1
+            elif self.is_game_over():
+                return -5
             else:
                 return -1
     
@@ -207,7 +211,8 @@ class TicTacToe():
             if opponent_win:
                 self.game_over = True
                 return -10
-            
+            elif self.is_game_over():
+                return -1
             else:
                 return 0
             
@@ -215,7 +220,8 @@ class TicTacToe():
             if opponent_win:
                 self.game_over = True
                 return -10
-            
+            elif self.is_game_over():
+                return -5
             else:
                 return -1
             
