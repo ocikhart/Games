@@ -230,13 +230,15 @@ def train_X(opponent):
     wins_O = [0 for _ in range(EPOCHS)]
     x = np.arange(EPOCHS)
     for i in range(EPOCHS):
-        wx, d, wo = train_games(GAME_BATCH, t_board_XNN, opponent, 'greedy', 'not_greedy', randomize=0)
+        wx, d, wo = train_games(GAME_BATCH, t_board_XNN, opponent, 'greedy', 'greedy', randomize=0)
         wins_X[i] = wx
         draws[i] = d
         wins_O[i] = wo
         print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
         states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_XNN)
         loss[i] = float(player_learn(t_board_XNN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, GAMMA))
+        if loss[i] < L_MIN:
+            break
         print(f"Epoch {i+1} Loss = {loss[i]}")
         print("===================================")
     #saving the X model
@@ -253,13 +255,15 @@ def train_O(opponent):
     wins_O = [0 for _ in range(EPOCHS)]
     x = np.arange(EPOCHS)
     for i in range(EPOCHS):
-        wx, d, wo = train_games(GAME_BATCH, opponent, t_board_ONN, 'not_greedy', 'greedy', 0)
+        wx, d, wo = train_games(GAME_BATCH, opponent, t_board_ONN, 'greedy', 'greedy', 0)
         wins_X[i] = wx
         draws[i] = d
         wins_O[i] = wo
         print(f"{wins_X[i]} : {draws[i]} : {wins_O[i]}")
         states, rewards, next_states_idx, next_states, next_states_p, done_vals = unpack_experiences(t_board_ONN)
         loss[i] = float(player_learn(t_board_ONN, len(states), states, rewards, next_states_idx, next_states, next_states_p, done_vals, GAMMA))
+        if loss[i] < L_MIN:
+            break
         print(f"Epoch {i+1} Loss = {loss[i]}")
         print("===================================")
     #saving the O model
@@ -292,20 +296,20 @@ def play_XO(epochs, game_batch, player_X, player_O, silent=True):
 
 INPUT = 9
 GAME_BATCH = 16
-EPOCHS = 32
+EPOCHS = 64
 #GAMMA = 0.995             # discount factor
 GAMMA = 1.000             # discount factor
 SEED = 0  # Seed for the pseudo-random number generator.
 EPS = 0.1 # ε for the ε-greedy policy.
 E_DECAY = 0.995  # ε-decay rate for the ε-greedy policy.
-E_MIN = 0.01  # Minimum ε value for the ε-greedy policy.
+L_MIN = 0.01  # Minimum ε value for the ε-greedy policy.
 training_directory_path = "/Users/ondrejcikhart/Desktop/Projects/Games/training/"
 X_NN_file = training_directory_path + "MODEL64_AP"
 O_NN_file = training_directory_path + "MODEL64_OO"
 
 #tf.random.set_seed(SEED)
 
-t_board_XNN = ttn.TicTacNN(player = 1,reward_type ='goal_reward')
+t_board_XNN = ttn.TicTacNN(player = 1,reward_type ='action_penalty')
 t_board_XNN.load_models(X_NN_file)
 t_board_ONN = ttn.TicTacNN(player = 2,reward_type ='goal_reward')
 t_board_ONN.load_models(O_NN_file)
@@ -319,7 +323,7 @@ fig, ax = plt.subplots(2)
 print(np.random.choice(5, 5))
 
 #train_X(t_board_ORND)
-train_O(t_board_XNN)
-#play_XO(8, 64, t_board_XNN, t_board_ONN, True)
+#train_O(t_board_XNN)
+play_XO(8, 64, t_board_XNN, t_board_ONN, True)
 
 plt.show()
